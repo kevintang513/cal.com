@@ -7,7 +7,6 @@ import { EventsInsights } from "../events";
 describe("EventsInsights", () => {
   describe("getDateRanges", () => {
     const getFormattedDate = (r: any) => r.formattedDate;
-    const getFormattedDateFull = (r: any) => r.formattedDateFull;
 
     describe("UTC timezone", () => {
       const timeZone = "UTC";
@@ -911,7 +910,7 @@ describe("EventsInsights", () => {
         expect(ranges).toHaveLength(5);
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan 15", "16", "17", "18", "19"]);
 
@@ -937,7 +936,7 @@ describe("EventsInsights", () => {
         expect(ranges).toHaveLength(4);
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan 30", "31", "Feb 1", "2"]);
 
@@ -965,7 +964,7 @@ describe("EventsInsights", () => {
         expect(ranges).toHaveLength(2);
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan 15 - 21", "Jan 22 - 28"]);
 
@@ -991,7 +990,7 @@ describe("EventsInsights", () => {
         expect(ranges).toHaveLength(2);
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan 29 - Feb 4", "Feb 5 - 11"]);
 
@@ -1019,7 +1018,7 @@ describe("EventsInsights", () => {
         expect(ranges).toHaveLength(3);
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan", "Feb", "Mar"]);
 
@@ -1046,7 +1045,7 @@ describe("EventsInsights", () => {
         }
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan 15", "16", "17", "18", "19", "20", "21"]);
 
@@ -1079,7 +1078,7 @@ describe("EventsInsights", () => {
         }
 
         const formattedDates = ranges.map(getFormattedDate);
-        const formattedDatesFull = ranges.map(getFormattedDateFull);
+        const formattedDatesFull = ranges.map((r) => r.formattedDateFull);
 
         expect(formattedDates).toEqual(["Jan 30", "31", "Feb 1", "2", "3", "4", "5"]);
 
