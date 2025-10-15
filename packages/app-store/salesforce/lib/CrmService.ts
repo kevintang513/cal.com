@@ -1225,15 +1225,14 @@ export default class SalesforceCRMService implements CRM {
   }) {
     const log = logger.getSubLogger({ prefix: [`[getTextFieldValue]: ${recordId} - ${fieldName}`] });
 
-    // If no {} then indicates we're passing a static value
     if (!fieldValue.startsWith("{") && !fieldValue.endsWith("}")) {
       log.info("Returning static value");
       return fieldValue;
     }
 
-    let valueToWrite = fieldValue;
+    let valueToWrite: string | undefined = fieldValue;
+
     if (fieldValue.startsWith("{form:")) {
-      // Get routing from response
       if (!bookingUid) {
         log.error(`BookingUid not passed. Cannot get form responses without it`);
         return;
@@ -1256,7 +1255,6 @@ export default class SalesforceCRMService implements CRM {
         return;
       }
     } else {
-      // Get the value from the booking response
       if (!calEventResponses) {
         log.error(`CalEventResponses not passed. Cannot get booking form responses`);
         return;
@@ -1264,13 +1262,11 @@ export default class SalesforceCRMService implements CRM {
       valueToWrite = this.getTextValueFromBookingResponse(fieldValue, calEventResponses);
     }
 
-    // If a value wasn't found in the responses. Don't return the field name
     if (valueToWrite === fieldValue) {
       log.error("No responses found returning nothing");
       return;
     }
 
-    // Trim incase the replacement values increased the length
     return fieldLength ? valueToWrite.substring(0, fieldLength) : valueToWrite;
   }
 

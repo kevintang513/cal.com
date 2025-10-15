@@ -167,13 +167,10 @@ export default class GoogleCalendarService implements Calendar {
     return res.data;
   }
 
-  async createEvent(
+  private buildEventPayload(
     calEvent: CalendarServiceEvent,
-    credentialId: number,
     externalCalendarId?: string
-  ): Promise<NewCalendarEventType> {
-    this.log.debug("Creating event");
-
+  ): calendar_v3.Schema$Event {
     const payload: calendar_v3.Schema$Event = {
       summary: calEvent.title,
       description: calEvent.calendarDescription,
@@ -192,6 +189,7 @@ export default class GoogleCalendarService implements Calendar {
       guestsCanSeeOtherGuests: !!calEvent.seatsPerTimeSlot ? calEvent.seatsShowAttendees : true,
       iCalUID: calEvent.iCalUID,
     };
+
     if (calEvent.hideCalendarEventDetails) {
       payload.visibility = "private";
     }
@@ -206,15 +204,74 @@ export default class GoogleCalendarService implements Calendar {
         interval: calEvent.recurringEvent.interval,
         count: calEvent.recurringEvent.count,
       });
-
       payload["recurrence"] = [rule.toString()];
     }
 
     if (calEvent.conferenceData && calEvent.location === MeetLocationType) {
       payload["conferenceData"] = calEvent.conferenceData;
     }
+
+    return payload;
+  }
+
+  private async findMatchingRecurringInstance(
+    calendar: calendar_v3.Calendar,
+    calEvent: CalendarServiceEvent,
+    selectedCalendar: string,
+    recurringEventId: string,
+    credentialId: number
+  ): Promise<calendar_v3.Schema$Event | undefined> {
+    const recurringEventInstances = await calendar.events.instances({
+      calendarId: selectedCalendar,
+      eventId: recurringEventId,
+    });
+
+    if (!recurringEventInstances.data.items) {
+      return undefined;
+    }
+
+    const calComEventStartTimeMs = new Date(calEvent.startTime).getTime();
+    let event: calendar_v3.Schema$Event | undefined;
+
+    for (let i = 0; i < recurringEventInstances.data.items.length; i++) {
+      const instance = recurringEventInstances.data.items[i];
+      const instanceStartTimeMs = new Date(instance.start?.dateTime || "").getTime();
+
+      if (instanceStartTimeMs === calComEventStartTimeMs) {
+        event = instance;
+        break;
+      }
+    }
+
+    if (!event) {
+      event = recurringEventInstances.data.items[0];
+      this.log.error(
+        "Unable to find matching event amongst recurring event instances",
+        safeStringify({ selectedCalendar, credentialId })
+      );
+    }
+
+    await calendar.events.patch({
+      calendarId: selectedCalendar,
+      eventId: event.id || "",
+      requestBody: {
+        location: getLocation(calEvent),
+        description: calEvent.calendarDescription,
+      },
+    });
+
+    return event;
+  }
+
+  async createEvent(
+    calEvent: CalendarServiceEvent,
+    credentialId: number,
+    externalCalendarId?: string
+  ): Promise<NewCalendarEventType> {
+    this.log.debug("Creating event");
+
+    const payload = this.buildEventPayload(calEvent, externalCalendarId);
     const calendar = await this.authedCalendar();
-    // Find in formattedCalEvent.destinationCalendar the one with the same credentialId
 
     const selectedCalendar =
       externalCalendarId ??
@@ -224,41 +281,16 @@ export default class GoogleCalendarService implements Calendar {
     try {
       let event: calendar_v3.Schema$Event | undefined;
       let recurringEventId = null;
+
       if (calEvent.existingRecurringEvent) {
         recurringEventId = calEvent.existingRecurringEvent.recurringEventId;
-        const recurringEventInstances = await calendar.events.instances({
-          calendarId: selectedCalendar,
-          eventId: calEvent.existingRecurringEvent.recurringEventId,
-        });
-        if (recurringEventInstances.data.items) {
-          // Compare timestamps directly for more reliable and faster matching
-          const calComEventStartTimeMs = new Date(calEvent.startTime).getTime();
-          for (let i = 0; i < recurringEventInstances.data.items.length; i++) {
-            const instance = recurringEventInstances.data.items[i];
-            const instanceStartTimeMs = new Date(instance.start?.dateTime || "").getTime();
-
-            if (instanceStartTimeMs === calComEventStartTimeMs) {
-              event = instance;
-              break;
-            }
-          }
-
-          if (!event) {
-            event = recurringEventInstances.data.items[0];
-            this.log.error(
-              "Unable to find matching event amongst recurring event instances",
-              safeStringify({ selectedCalendar, credentialId })
-            );
-          }
-          await calendar.events.patch({
-            calendarId: selectedCalendar,
-            eventId: event.id || "",
-            requestBody: {
-              location: getLocation(calEvent),
-              description: calEvent.calendarDescription,
-            },
-          });
-        }
+        event = await this.findMatchingRecurringInstance(
+          calendar,
+          calEvent,
+          selectedCalendar,
+          recurringEventId,
+          credentialId
+        );
       } else {
         const eventResponse = await calendar.events.insert({
           calendarId: selectedCalendar,
@@ -267,19 +299,17 @@ export default class GoogleCalendarService implements Calendar {
           sendUpdates: "none",
         });
         event = eventResponse.data;
-        if (event.recurrence) {
-          if (event.recurrence.length > 0) {
-            recurringEventId = event.id;
-            event = await this.getFirstEventInRecurrence(recurringEventId, selectedCalendar, calendar);
-          }
+
+        if (event.recurrence?.length) {
+          recurringEventId = event.id;
+          event = await this.getFirstEventInRecurrence(recurringEventId, selectedCalendar, calendar);
         }
       }
 
-      if (event && event.id && event.hangoutLink) {
+      if (event?.id && event.hangoutLink) {
         await calendar.events.patch({
-          // Update the same event but this time we know the hangout link
           calendarId: selectedCalendar,
-          eventId: event.id || "",
+          eventId: event.id,
           requestBody: {
             description: getRichDescription({
               ...calEvent,
@@ -304,8 +334,6 @@ export default class GoogleCalendarService implements Calendar {
       };
     } catch (error) {
       if (isGaxiosResponse(error)) {
-        // Prevent clogging up the logs with the body of the request
-        // Plus, we already have this data in error.data.summary
         delete error.config.body;
       }
       this.log.error(
@@ -677,7 +705,7 @@ export default class GoogleCalendarService implements Calendar {
     const fromDate = new Date(dateFrom);
     const toDate = new Date(dateTo);
     const oneDayMs = 1000 * 60 * 60 * 24;
-    const diff = Math.floor((toDate.getTime() - fromDate.getTime()) / (oneDayMs));
+    const diff = Math.floor((toDate.getTime() - fromDate.getTime()) / oneDayMs);
 
     // Google API only allows a date range of 90 days for /freebusy
     if (diff <= 90) {
