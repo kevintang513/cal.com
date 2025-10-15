@@ -48,6 +48,7 @@
 <img width="100%" alt="booking-screen" src="https://github.com/calcom/cal.com/assets/8019099/407e727e-ff19-4ca4-bcae-049dca05cf02">
 
 # Scheduling infrastructure for absolutely everyone
+<!-- Test PR verification -->
 
 The open source Calendly successor. You are in charge
 of your own data, workflow, and appearance.
