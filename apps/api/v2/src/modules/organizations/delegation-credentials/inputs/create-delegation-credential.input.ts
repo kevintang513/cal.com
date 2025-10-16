@@ -22,7 +22,6 @@ export class CreateDelegationCredentialInput {
 
   @Validate(ServiceAccountKeyValidator)
   @ApiProperty({
-    type: [GoogleServiceAccountKeyInput, MicrosoftServiceAccountKeyInput],
     oneOf: [
       { $ref: getSchemaPath(GoogleServiceAccountKeyInput) },
       { $ref: getSchemaPath(MicrosoftServiceAccountKeyInput) },

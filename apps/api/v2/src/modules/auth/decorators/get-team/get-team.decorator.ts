@@ -5,29 +5,28 @@ import { Team } from "@calcom/prisma/client";
 
 export type GetTeamReturnType = Team;
 
-export const GetTeam = createParamDecorator<
-  keyof GetTeamReturnType | (keyof GetTeamReturnType)[],
-  ExecutionContext
->((data, ctx) => {
-  const request = ctx.switchToHttp().getRequest();
-  const team = request.team as GetTeamReturnType;
+export const GetTeam = createParamDecorator<keyof GetTeamReturnType | (keyof GetTeamReturnType)[]>(
+  (data, ctx) => {
+    const request = ctx.switchToHttp().getRequest();
+    const team = request.team as GetTeamReturnType;
 
-  if (!team) {
-    throw new Error("GetTeam decorator : Team not found");
+    if (!team) {
+      throw new Error("GetTeam decorator : Team not found");
+    }
+
+    if (Array.isArray(data)) {
+      return data.reduce((prev, curr) => {
+        return {
+          ...prev,
+          [curr]: team[curr],
+        };
+      }, {});
+    }
+
+    if (data) {
+      return team[data];
+    }
+
+    return team;
   }
-
-  if (Array.isArray(data)) {
-    return data.reduce((prev, curr) => {
-      return {
-        ...prev,
-        [curr]: team[curr],
-      };
-    }, {});
-  }
-
-  if (data) {
-    return team[data];
-  }
-
-  return team;
-});
+);

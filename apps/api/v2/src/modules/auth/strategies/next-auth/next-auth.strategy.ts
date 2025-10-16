@@ -12,6 +12,10 @@ export class NextAuthStrategy extends PassportStrategy(NextAuthPassportStrategy,
     super();
   }
 
+  async validate(): Promise<any> {
+    return null;
+  }
+
   async authenticate(req: Request) {
     try {
       const nextAuthSecret = this.config.get("next.authSecret", { infer: true });

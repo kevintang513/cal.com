@@ -14,6 +14,9 @@ export class ApiAuthMockStrategy extends PassportStrategy(BaseStrategy, "api-aut
   ) {
     super();
   }
+  async validate(): Promise<any> {
+    return null;
+  }
 
   async authenticate(request: ApiAuthGuardRequest) {
     try {

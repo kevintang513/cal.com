@@ -103,7 +103,7 @@ export class ScheduleOutput {
   @ApiProperty({ type: [AvailabilityModel] })
   schedule!: AvailabilityModel[];
 
-  @ApiProperty({ type: [[TimeRange]] })
+  @ApiProperty({ type: [Object] })
   availability!: TimeRange[][];
 
   @IsString()

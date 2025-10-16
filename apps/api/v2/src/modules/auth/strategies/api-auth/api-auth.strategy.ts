@@ -45,6 +45,10 @@ export class ApiAuthStrategy extends PassportStrategy(BaseStrategy, "api-auth") 
     super();
   }
 
+  async validate(): Promise<any> {
+    return null;
+  }
+
   async authenticate(request: ApiAuthGuardRequest) {
     try {
       const { params } = request;

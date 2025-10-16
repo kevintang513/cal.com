@@ -17,7 +17,6 @@ export class UpdateDelegationCredentialInput {
   @IsOptional()
   @Validate(ServiceAccountKeyValidator)
   @ApiPropertyOptional({
-    type: [GoogleServiceAccountKeyInput, MicrosoftServiceAccountKeyInput],
     oneOf: [
       { $ref: getSchemaPath(GoogleServiceAccountKeyInput) },
       { $ref: getSchemaPath(MicrosoftServiceAccountKeyInput) },

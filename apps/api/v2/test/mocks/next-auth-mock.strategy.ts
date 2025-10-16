@@ -8,6 +8,10 @@ export class NextAuthMockStrategy extends PassportStrategy(NextAuthPassportStrat
   constructor(private readonly email: string, private readonly userRepository: UsersRepository) {
     super();
   }
+  async validate(): Promise<any> {
+    return null;
+  }
+
   async authenticate() {
     try {
       const user = await this.userRepository.findByEmailWithProfile(this.email);
